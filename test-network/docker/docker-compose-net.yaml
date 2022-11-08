@@ -1,0 +1,177 @@
+# Copyright IBM Corp. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+version: '2'
+
+volumes:
+  org1_peer0:
+  org1_peer1:
+  org1_orderer0:
+  org1_orderer1:
+
+networks:
+  test:
+
+services:
+  org_peer0:
+    container_name: ${ORG_NAME}_${PEER1_NAME}
+    image: hyperledger/fabric-peer:$IMAGE_TAG
+    environment:
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=net_test
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_PROFILE_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      # Peer specific variabes
+      - CORE_PEER_ID=${PEER1_NAME}.${ORG_NAME}.com
+      - CORE_PEER_ADDRESS=${PEER1_NAME}.${ORG_NAME}.com:${PEER1_PORT} 
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:${PEER1_PORT}    
+      - CORE_PEER_CHAINCODEADDRESS=${PEER1_NAME}.${ORG_NAME}.com:${PEER1_CC_PORT}
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:${PEER1_CC_PORT}
+      - CORE_PEER_GOSSIP_BOOTSTRAP=${PEER1_NAME}.${ORG_NAME}.com:${PEER1_PORT}  
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=${PEER1_NAME}.${ORG_NAME}.com:${PEER1_PORT}
+      - CORE_PEER_LOCALMSPID=PeerOrg1MSP      
+      # CouchDB variabes
+      - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=${PEER1_COUCHDB_NAME}:5984
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=admin
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=adminpw
+    volumes:
+        - /var/run/docker.sock:/host/var/run/docker.sock
+        - ../organizations/peerOrgs/${ORG_NAME}/peers/${PEER1_NAME}/msp:/etc/hyperledger/fabric/msp
+        - ../organizations/peerOrgs/${ORG_NAME}/peers/${PEER1_NAME}/tls:/etc/hyperledger/fabric/tls
+        - ../organizations/peerOrgs/${ORG_NAME}/peers/${PEER1_NAME}:/var/hyperledger/production
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: peer node start
+    ports:
+      - ${PEER1_PORT}:${PEER1_PORT}
+    depends_on:
+      - ${PEER1_COUCHDB_NAME}
+    networks:
+      - test
+
+  org_peer1:
+    container_name: ${ORG_NAME}_${PEER2_NAME}
+    image: hyperledger/fabric-peer:$IMAGE_TAG
+    environment:
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=net_test
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_PROFILE_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      # Peer specific variabes
+      - CORE_PEER_ID=${PEER2_NAME}.${ORG_NAME}.com
+      - CORE_PEER_ADDRESS=${PEER2_NAME}.${ORG_NAME}.com:${PEER2_PORT} 
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:${PEER2_PORT}    
+      - CORE_PEER_CHAINCODEADDRESS=${PEER2_NAME}.${ORG_NAME}.com:${PEER2_CC_PORT}
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:${PEER2_CC_PORT}
+      - CORE_PEER_GOSSIP_BOOTSTRAP=${PEER2_NAME}.${ORG_NAME}.com:${PEER2_PORT}  
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=${PEER2_NAME}.${ORG_NAME}.com:${PEER2_PORT}
+      - CORE_PEER_LOCALMSPID=PeerOrg1MSP      
+      # CouchDB variabes
+      - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=${PEER2_COUCHDB_NAME}:5984
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=admin
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=adminpw
+    volumes:
+        - /var/run/docker.sock:/host/var/run/docker.sock
+        - ../organizations/peerOrgs/${ORG_NAME}/peers/${PEER2_NAME}/msp:/etc/hyperledger/fabric/msp
+        - ../organizations/peerOrgs/${ORG_NAME}/peers/${PEER2_NAME}/tls:/etc/hyperledger/fabric/tls
+        - ../organizations/peerOrgs/${ORG_NAME}/peers/${PEER2_NAME}:/var/hyperledger/production
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: peer node start
+    ports:
+      - ${PEER2_PORT}:${PEER2_PORT}
+    depends_on:
+      - ${PEER2_COUCHDB_NAME}
+    networks:
+      - test
+  
+  org_orderer0:
+    container_name: ${ORG_NAME}_${ORDERER1_NAME}
+    image: hyperledger/fabric-orderer:$IMAGE_TAG
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_LISTENPORT=${ORDERER1_PORT}
+      - ORDERER_GENERAL_GENESISMETHOD=file
+      - ORDERER_GENERAL_GENESISFILE=/var/hyperledger/orderer/orderer.genesis.block
+      - ORDERER_GENERAL_LOCALMSPID=OrdererOrg1MSP
+      - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
+      - ORDERER_GENERAL_TLS_ENABLED=true
+      - ORDERER_GENERAL_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_CLUSTER_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric
+    command: orderer
+    volumes:
+        - ../system-genesis-block/genesis.block:/var/hyperledger/orderer/orderer.genesis.block
+        - ../organizations/ordererOrgs/${ORG_NAME}/orderers/${ORDERER1_NAME}/msp:/var/hyperledger/orderer/msp
+        - ../organizations/ordererOrgs/${ORG_NAME}/orderers/${ORDERER1_NAME}/tls/:/var/hyperledger/orderer/tls
+        - ../organizations/ordererOrgs/${ORG_NAME}/orderers/${ORDERER1_NAME}:/var/hyperledger/production/orderer
+    ports:
+      - ${ORDERER1_PORT}:${ORDERER1_PORT}
+    networks:
+      - test
+
+  org_orderer1:
+    container_name: ${ORG_NAME}_${ORDERER2_NAME}
+    image: hyperledger/fabric-orderer:$IMAGE_TAG
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_LISTENPORT=${ORDERER2_PORT}
+      - ORDERER_GENERAL_GENESISMETHOD=file
+      - ORDERER_GENERAL_GENESISFILE=/var/hyperledger/orderer/orderer.genesis.block
+      - ORDERER_GENERAL_LOCALMSPID=OrdererOrg1MSP
+      - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
+      - ORDERER_GENERAL_TLS_ENABLED=true
+      - ORDERER_GENERAL_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_CLUSTER_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric
+    command: orderer
+    volumes:
+        - ../system-genesis-block/genesis.block:/var/hyperledger/orderer/orderer.genesis.block
+        - ../organizations/ordererOrgs/${ORG_NAME}/orderers/${ORDERER2_NAME}/msp:/var/hyperledger/orderer/msp
+        - ../organizations/ordererOrgs/${ORG_NAME}/orderers/${ORDERER2_NAME}/tls/:/var/hyperledger/orderer/tls
+        - ../organizations/ordererOrgs/${ORG_NAME}/orderers/${ORDERER2_NAME}:/var/hyperledger/production/orderer
+    ports:
+      - ${ORDERER2_PORT}:${ORDERER2_PORT}
+    networks:
+      - test
+  
+  cli:
+    container_name: cli
+    image: hyperledger/fabric-tools:$IMAGE_TAG
+    tty: true
+    stdin_open: true
+    environment:
+      - GOPATH=/opt/gopath
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - FABRIC_LOGGING_SPEC=INFO
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: /bin/bash
+    volumes:
+        - /var/run/:/host/var/run/
+        - ../organizations:/opt/gopath/src/github.com/hyperledger/fabric/peer/organizations
+        - ../scripts:/opt/gopath/src/github.com/hyperledger/fabric/peer/scripts/
+    depends_on:
+      - org_peer0
+      - org_peer1
+      - org_orderer0
+      - org_orderer1
+    networks:
+      - test

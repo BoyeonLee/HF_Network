@@ -1,0 +1,37 @@
+version: '2'
+
+networks:
+  test:
+
+services: # docker 컨테이너 서비스 설정
+  ca_peer:
+    image: hyperledger/fabric-ca:latest
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca 
+      - FABRIC_CA_SERVER_CA_NAME=ca_${ORG_NAME}_peer
+      - FABRIC_CA_SERVER_TLS_ENABLED=true
+      - FABRIC_CA_SERVER_PORT=${CA_PEER_PORT}
+    ports:
+      - "${CA_PEER_PORT}:${CA_PEER_PORT}"
+    command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
+    volumes:
+      - ../organizations/CAs/peers/${ORG_NAME}:/etc/hyperledger/fabric-ca
+    container_name: ca_${ORG_NAME}_peer
+    networks:
+      - test
+
+  ca_orderer:
+    image: hyperledger/fabric-ca:latest
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca
+      - FABRIC_CA_SERVER_CA_NAME=ca_${ORG_NAME}_orderer
+      - FABRIC_CA_SERVER_TLS_ENABLED=true
+      - FABRIC_CA_SERVER_PORT=${CA_ORDERER_PORT}
+    ports:
+      - "${CA_ORDERER_PORT}:${CA_ORDERER_PORT}"
+    command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
+    volumes:
+      - ../organizations/CAs/orderers/${ORG_NAME}:/etc/hyperledger/fabric-ca
+    container_name: ca_${ORG_NAME}_orderer
+    networks:
+      - test

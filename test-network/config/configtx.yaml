@@ -1,0 +1,148 @@
+# Copyright IBM Corp. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+Organizations:
+
+    - &OrdererOrg
+        Name: OrdererOrg1
+        ID: OrdererOrg1MSP
+        MSPDir: ../organizations/ordererOrgs/org1/msp
+        Policies: 
+            Readers:
+                Type: Signature
+                Rule: "OR('OrdererOrg1MSP.member')"
+            Writers:
+                Type: Signature
+                Rule: "OR('OrdererOrg1MSP.member')"
+            Admins:
+                Type: Signature
+                Rule: "OR('OrdererOrg1MSP.admin')"
+            Endorsement:
+                Type: Signature
+                Rule: "OR('OrdererOrg1MSP.member')"
+        OrdererEndpoints:
+            - orderer0.org1.com:2050
+            - orderer1.org1.com:3050
+
+    - &PeerOrg
+        Name: PeerOrg1  
+        ID: PeerOrg1MSP
+        MSPDir: ../organizations/peerOrgs/org1/msp
+        Policies:
+            Readers:
+                Type: Signature
+                Rule: "OR('PeerOrg1MSP.member')"
+            Writers:
+                Type: Signature
+                Rule: "OR('PeerOrg1MSP.member')"
+            Admins:
+                Type: Signature
+                Rule: "OR('PeerOrg1MSP.admin')"
+            Endorsement:
+                Type: Signature
+                Rule: "OR('PeerOrg1MSP.member')"
+        AnchorPeers:
+            - Host: peer0.org1.com
+              Port: 2051
+
+Capabilities:
+    Channel: &ChannelCapabilities
+        V2_0: true
+    Orderer: &OrdererCapabilities
+        V2_0: true
+    Application: &ApplicationCapabilities
+        V2_0: true
+
+Application: &ApplicationDefaults
+    Organizations:
+    Policies: &ApplicationDefaultPolicies
+        LifecycleEndorsement:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Endorsement"
+        Endorsement:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Endorsement"
+        Readers:
+            Type: ImplicitMeta
+            Rule: "ANY Readers"
+        Writers:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+        Admins:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Admins"
+    Capabilities:
+        <<: *ApplicationCapabilities
+
+Orderer: &OrdererDefaults
+    OrdererType: etcdraft
+    Addresses:
+        - orderer0.org1.com:2050
+        - orderer1.org1.com:3050
+    EtcdRaft:
+        Consenters:
+            - Host: orderer0.org1.com
+              Port: 2050
+              ClientTLSCert: ../organizations/ordererOrgs/org1/orderers/orderer0/tls/server.crt
+              ServerTLSCert: ../organizations/ordererOrgs/org1/orderers/orderer0/tls/server.crt
+            - Host: orderer1.org1.com
+              Port: 3050
+              ClientTLSCert: ../organizations/ordererOrgs/org1/orderers/orderer1/tls/server.crt
+              ServerTLSCert: ../organizations/ordererOrgs/org1/orderers/orderer1/tls/server.crt
+    BatchTimeout: 2s
+    BatchSize:
+        MaxMessageCount: 10
+        AbsoluteMaxBytes: 99 MB
+        PreferredMaxBytes: 512 KB
+    Organizations:
+    Policies:
+        Readers:
+            Type: ImplicitMeta
+            Rule: "ANY Readers"
+        Writers:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+        Admins:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Admins"
+        BlockValidation:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+    Capabilities:
+        <<: *OrdererCapabilities
+
+Channel: &ChannelDefaults
+    Policies:
+        Readers:
+            Type: ImplicitMeta
+            Rule: "ANY Readers"
+        Writers:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+        Admins:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Admins"
+    Capabilities:
+        <<: *ChannelCapabilities
+
+Profiles:
+    OrdererGenesis:
+        <<: *ChannelDefaults
+        Orderer:
+            <<: *OrdererDefaults
+            Organizations:
+                - *OrdererOrg
+            Capabilities:
+                <<: *OrdererCapabilities
+        Consortiums:
+            SampleConsortium:
+                Organizations:
+                    - *PeerOrg
+
+    OneOrgChannel:
+        Consortium: SampleConsortium
+        <<: *ChannelDefaults
+        Application:
+            <<: *ApplicationDefaults
+            Organizations:
+                - *PeerOrg
